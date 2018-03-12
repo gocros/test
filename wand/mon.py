@@ -2,24 +2,34 @@ import time
 
 def read(filename):
     with open(filename, 'r') as fd:
-        return fd.readline().rstrip()
+        s = fd.readline().rstrip()
+        return int(s) if s.isdigit() else s
 
-c0 = []
-c1 = []
-with open('/tmp/capacity.txt','w') as fo:
+with open('/tmp/mon.csv','w') as fo:
     fo.write("time,c0,c1,v0,v1,i0,i1\n")
 
-while True:
-    try:
-        with open('/tmp/capacity.txt','a') as fo:
-            c0 = read('/sys/class/power_supply/BAT0/capacity')
-            c1 = read('/sys/class/power_supply/BAT1/capacity')
-            v0 = read('/sys/class/power_supply/BAT0/voltage_now')
-            v1 = read('/sys/class/power_supply/BAT1/voltage_now')
-            i0 = read('/sys/class/power_supply/BAT0/current_now')
-            i1 = read('/sys/class/power_supply/BAT1/current_now')
-            fo.write("{},{},{},{},{},{},{}\n".format(time.time(),c0,c1,v0,v1,i0,i1))
-    except:
-        continue
+    while True:
+        s0 = read('/sys/class/power_supply/BAT0/status')
+        c0 = read('/sys/class/power_supply/BAT0/capacity')
+        v0 = read('/sys/class/power_supply/BAT0/voltage_now')
+        i0 = read('/sys/class/power_supply/BAT0/current_now')
         
-    time.sleep(1)
+        i0 = -i0 if s0=='Charging' else i0   
+        
+        try:
+            v1 = read('/sys/class/power_supply/BAT1/voltage_now')        
+            s1 = read('/sys/class/power_supply/BAT1/status')
+            i1 = read('/sys/class/power_supply/BAT1/current_now')
+            c1 = read('/sys/class/power_supply/BAT1/capacity')
+            i1 = -i1 if s1=='Charging' else i1
+        except:
+            v1 = 0
+            s1 = -9999
+            i1 = 0
+            c1 = -9999
+
+        rec = "{},{},{},{},{},{},{}\n".format(time.time(),c0,c1,v0,v1,i0,i1)
+        print rec
+        fo.write(rec)
+        fo.flush()
+        time.sleep(1)

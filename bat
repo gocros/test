@@ -18,7 +18,6 @@ print "Battery 0:"
 print "  Voltage = {:.3f}V".format(v0/1e6)
 print "  Current = {:.3f}A ({})".format(i0/1e6,s0)
 print "  SOC     = {}%".format(c0)
-print ""
 print "Battery 1:"
 print "  Voltage = {:.3f}V".format(v1/1e6)
 print "  Current = {:.3f}A ({})".format(i1/1e6,s1)

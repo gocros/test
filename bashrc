@@ -16,5 +16,6 @@ fi
 
 
 # Put your fun stuff here.
+sudo mount -o remount,exec /home/chronos/user
 export PATH=./:/usr/local/conda2/bin:$PATH
 cd ~/test

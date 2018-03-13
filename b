@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 read -r v < "/sys/class/power_supply/BAT0/voltage_now"
 read -r s < "/sys/class/power_supply/BAT0/status"

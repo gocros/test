@@ -1,1 +1,0 @@
-/usr/local/conda2/bin

@@ -3,10 +3,7 @@
 def read(filename, t='int'):
     with open(filename, 'r') as fd:
         val = fd.readline().rstrip()
-        if t=='int':
-            return int(val)
-        elif t=='string':
-            return val
+	return int(val) if val.isdigit() else val
 
 c0 = read('/sys/class/power_supply/BAT0/capacity')
 c1 = read('/sys/class/power_supply/BAT1/capacity')

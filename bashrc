@@ -18,5 +18,4 @@ fi
 # Put your fun stuff here.
 export PATH=./:/usr/local/conda2/bin:$PATH
 cd
-cd projects
-
+cd test

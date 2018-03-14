@@ -1,4 +1,4 @@
-#! /usr/local/bin/python2.7
+#! /usr/local/conda2/bin/python
 
 def read(filename, t='int'):
     with open(filename, 'r') as fd:

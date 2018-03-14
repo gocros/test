@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/conda2/bin/python
 import time
 
 def read(filename):

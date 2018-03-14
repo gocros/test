@@ -7,7 +7,7 @@ def read(filename, t='int'):
 
 
 print "BAT0:"
-if True:
+try:
     c0 = read('/sys/class/power_supply/BAT0/capacity')
     v0 = read('/sys/class/power_supply/BAT0/voltage_now')
     i0 = read('/sys/class/power_supply/BAT0/current_now')
@@ -15,8 +15,8 @@ if True:
     print "  Voltage = {:.3f}V".format(v0/1e6)
     print "  Current = {:.3f}A ({})".format(i0/1e6,s0)
     print "  SOC     = {}%".format(c0)
-if True:
-    print "---"
+except:
+    print "  ---"
 
 print "BAT1:"
 try:
@@ -28,4 +28,4 @@ try:
     print "  Current = {:.3f}A ({})".format(i1/1e6,s1)
     print "  SOC     = {}%".format(c1)
 except:
-    print "---"
+    print "  ---"

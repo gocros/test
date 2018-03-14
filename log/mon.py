@@ -6,7 +6,7 @@ def read(filename):
         s = fd.readline().rstrip()
         return int(s) if s.isdigit() else s
 
-t0=time.time()
+time0=time.time()
 with open('/tmp/mon.csv','w') as fo:
     fo.write("time,c0,c1,v0,v1,i0,i1,cpu_uj,sys_uj\n")
 
@@ -16,8 +16,9 @@ with open('/tmp/mon.csv','w') as fo:
         v0 = read('/sys/class/power_supply/BAT0/voltage_now')
         i0 = read('/sys/class/power_supply/BAT0/current_now')
         
-        cpu_uj = read('/sys/class/powercap/intel-rapl:0/energy_uj')
+        time1 = time.time()
         sys_uj = read('/sys/class/powercap/intel-rapl:1/energy_uj')
+        cpu_uj = read('/sys/class/powercap/intel-rapl:0/energy_uj')
                       
         i0 = -i0 if s0=='Charging' else i0   
         
@@ -34,7 +35,7 @@ with open('/tmp/mon.csv','w') as fo:
             c1 = -9999
 
         
-        rec = "{},{},{},{},{},{},{},{},{}\n".format(time.time()-t0,c0,c1,v0,v1,i0,i1,cpu_uj,sys_uj)
+        rec = "{},{},{},{},{},{},{},{},{}\n".format(time1-time0,c0,c1,v0,v1,i0,i1,cpu_uj,sys_uj)
         print rec
         fo.write(rec)
         fo.flush()

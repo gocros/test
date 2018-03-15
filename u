@@ -1,3 +1,8 @@
 #!/bin/bash
-git commit -a -m \'$1\'
-git push
+if [ $# -eq 1 ] 
+then
+  git commit -a -m \'$1\'
+  git push
+else
+  echo "Missing commit message!"
+fi

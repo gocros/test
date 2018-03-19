@@ -143,10 +143,8 @@ def update_button_text(interval):
 )
 def button(n_clicks):
     if n_clicks%2:
-        print "===>YES<==="
         return UPDATE_INTERVAL_MSEC*3600*24
     else:
-        print "-------->NO<-------"
         return UPDATE_INTERVAL_MSEC
 
 if __name__ == '__main__':

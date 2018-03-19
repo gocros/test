@@ -11,7 +11,7 @@ import plotly.graph_objs as go
 from plotly import tools
 from mytools import *
 
-UPDATE_INTERVAL_MSEC=5000
+UPDATE_INTERVAL_MSEC=1000
 
 app = dash.Dash()
 

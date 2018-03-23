@@ -9,7 +9,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 from plotly import tools
-from mytools import *
 
 UPDATE_INTERVAL_MSEC=1000
 
@@ -58,7 +57,7 @@ def init_fig():
     layout = go.Layout(
         width=1200, 
         height=768, 
-        plot_bgcolor="#D0D0D0",
+        plot_bgcolor="#C0C0C0",
         paper_bgcolor="#F0F0F0",
         margin=dict(l=50, b=40, r=0, t=30),
         xaxis1=dict(title='TIME (SEC)', anchor='y4'),
@@ -75,63 +74,45 @@ def init_fig():
     
     return fig
 
-def _init_fig():    
-    trace_v0 = go.Scatter(x=[], y=[], name='BAT0', marker=dict(color='orange'), legendgroup='bat0')
-    trace_v1 = go.Scatter(x=[], y=[], name='BAT1', marker=dict(color='steelblue'), legendgroup='bat1')
-    trace_i0 = go.Scatter(x=[], y=[], name='BAT0', marker=dict(color='orange'), legendgroup='bat0', showlegend=False)
-    trace_i1 = go.Scatter(x=[], y=[], name='BAT1', marker=dict(color='steelblue'), legendgroup='bat1', showlegend=False)
-    trace_p0 = go.Scatter(x=[], y=[], name='BAT0', marker=dict(color='orange'), legendgroup='bat0', showlegend=False)
-    trace_p1 = go.Scatter(x=[], y=[], name='BAT1', marker=dict(color='steelblue'), legendgroup='bat1', showlegend=False)
-    trace_sys = go.Scatter(x=[], y=[], name='PSYS', legendgroup='psys')
-    trace_plt = go.Scatter(x=[], y=[], name='CPU', legendgroup='plt')
-    trace_t0 = go.Scatter(x=[], y=[], name='x86_pkg')
-    trace_t1 = go.Scatter(x=[], y=[], name='INT3400')
-    trace_t2 = go.Scatter(x=[], y=[], name='TSR0')
-    trace_t3 = go.Scatter(x=[], y=[], name='TSR1')
-    trace_t4 = go.Scatter(x=[], y=[], name='TSR2')
-    trace_t5 = go.Scatter(x=[], y=[], name='TSR3')
-    trace_t6 = go.Scatter(x=[], y=[], name='B0D4')
-    trace_t7 = go.Scatter(x=[], y=[], name='iwlwifi')
-
-    fig = tools.make_subplots(rows=4, cols=1, vertical_spacing=0.005, shared_xaxes=True)
-
-    fig.append_trace(trace_v0, 1, 1)
-    fig.append_trace(trace_v1, 1, 1)
-    fig.append_trace(trace_i0, 2, 1)
-    fig.append_trace(trace_i1, 2, 1)
-    fig.append_trace(trace_p0, 3, 1)
-    fig.append_trace(trace_p1, 3, 1)
-    fig.append_trace(trace_sys, 3, 1)
-    fig.append_trace(trace_plt, 3, 1)
-    fig.append_trace(trace_t0, 4, 1)
-    fig.append_trace(trace_t1, 4, 1)
-    fig.append_trace(trace_t2, 4, 1)
-    fig.append_trace(trace_t3, 4, 1)
-    fig.append_trace(trace_t4, 4, 1)
-    fig.append_trace(trace_t5, 4, 1)
-    fig.append_trace(trace_t6, 4, 1)
-    fig.append_trace(trace_t7, 4, 1)
-    
-    print fig
-
-    fig.layout.update(
-        go.Layout(
-            autosize=True,
-            width=1200, 
-            height=768, 
-            margin=dict(l=50, b=40, r=0, t=30),
-            plot_bgcolor="#D0D0D0",
-            paper_bgcolor="#F0F0F0",
-            xaxis1=dict(title='TIME (SEC)'),
-            yaxis1=dict(title='VOLTAGE (V)'),
-            yaxis2=dict(title='CURRENT (A)'),
-            yaxis3=dict(title='POWER (W)'),
-            yaxis4=dict(title='TEMPERATURE (degC)')
-        )
+def init_histo():    
+    data =[
+        go.Histogram(
+            x=[], y=[], 
+            histnorm='probability', 
+            nbinsx=128, 
+            name='BAT0',
+            marker = dict(color='orange'), 
+            showlegend=False,
+            cumulative=dict(enabled=True),
+            xaxis='x1'
+        ),
+        go.Histogram(
+            x=[],
+            histnorm='probability', 
+            nbinsx=128, 
+            name='BAT1',
+            marker = dict(color='steelblue'),  
+            showlegend=False,
+            cumulative=dict(enabled=True),
+            xaxis='x2'
+        )     
+    ]
+    layout = go.Layout(
+        width=1200, 
+        height=300, 
+        plot_bgcolor="#C0C0C0",
+        paper_bgcolor="#F0F0F0",
+        margin=dict(l=50, b=40, r=0, t=10),
+        xaxis1=dict(title='BAT0 POWER (W)', domain=[0,0.440]),
+        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.45, 0.45+0.44]),        
     )
+
+    fig = dict(data=data, layout=layout)
+    print "==========figure============="
+    print fig
+    print "============================="
     
     return fig
-
 app = dash.Dash()
 
 @app.server.route('/css/my.css')
@@ -158,16 +139,35 @@ app.layout = html.Div(
                 dcc.Graph(
                     id='graph_one', 
                     figure=init_fig()
+                ),
+                dcc.Graph(
+                    id='histogram', 
+                    figure=init_histo()
                 )
+                
             ],  
             style={'display': 'inline-block'}
         ),
         
-        dcc.Interval(id='live-update', interval=1000),
-    
+        dcc.Interval(id='live-update', interval=1000)
+          
     ], style={'background-color':"#F0F0F0"}
 ) 
 
+@app.callback(
+    dep.Output('histogram', 'figure'),
+    [],
+    [dep.State('graph_one', 'figure'),
+     dep.State('histogram', 'figure')],
+    [dep.Event('live-update', 'interval')])
+
+def update_histo(fig, histo):
+    pwr_bat0 = fig['data'][4]['y']
+    pwr_bat1 = fig['data'][5]['y']
+    histo['data'][0]['x'] = pwr_bat0
+    histo['data'][1]['x'] = pwr_bat1
+    return histo
+    
 @app.callback(
     dep.Output('graph_one', 'figure'),
     [],
@@ -175,16 +175,21 @@ app.layout = html.Div(
     [dep.Event('live-update', 'interval')])
 
 def update_plot(fig):
-    t=time.time()
     y_data = []
+    t0 = time.time()
+    sys0 = read('/sys/class/powercap/intel-rapl:1/energy_uj')/1e6
+    cpu0 = read('/sys/class/powercap/intel-rapl:0/energy_uj')/1e6
+    
     y_data.append(read('/sys/class/power_supply/BAT0/voltage_now')/1e6)
     y_data.append(read('/sys/class/power_supply/BAT1/voltage_now')/1e6)
     y_data.append(read('/sys/class/power_supply/BAT0/current_now')/1e6)
     y_data.append(read('/sys/class/power_supply/BAT1/current_now')/1e6)
-    y_data.append(y_data[0]*y_data[1])
-    y_data.append(y_data[2]*y_data[3])
-    y_data.append(read('/sys/class/powercap/intel-rapl:1/energy_uj')/1e6)
-    y_data.append(read('/sys/class/powercap/intel-rapl:0/energy_uj')/1e6)
+    y_data.append(y_data[0]*y_data[2])
+    y_data.append(y_data[1]*y_data[3])
+
+    t = time.time()
+    y_data.append(0)
+    y_data.append(0)
     y_data.append(read('/sys/class/thermal/thermal_zone0/temp')/1e3)
     y_data.append(read('/sys/class/thermal/thermal_zone1/temp')/1e3)
     y_data.append(read('/sys/class/thermal/thermal_zone2/temp')/1e3)
@@ -194,6 +199,12 @@ def update_plot(fig):
     y_data.append(read('/sys/class/thermal/thermal_zone6/temp')/1e3)
     y_data.append(read('/sys/class/thermal/thermal_zone7/temp')/1e3)
 
+    dt = time.time() - t0
+    sys1 = read('/sys/class/powercap/intel-rapl:1/energy_uj')/1e6
+    cpu1 = read('/sys/class/powercap/intel-rapl:0/energy_uj')/1e6
+    y_data[6] = (sys1-sys0)/dt
+    y_data[7] = (cpu1-cpu0)/dt
+    
     data = fig['data']
         
     for dat, y in zip(data, y_data):

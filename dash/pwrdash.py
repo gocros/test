@@ -175,8 +175,8 @@ def update_plot(fig):
     t=time.time()
     y_data = []
     y_data.append(read('/sys/class/power_supply/BAT0/voltage_now')/1e6)
-    y_data.append(read('/sys/class/power_supply/BAT0/current_now')/1e6)
     y_data.append(read('/sys/class/power_supply/BAT1/voltage_now')/1e6)
+    y_data.append(read('/sys/class/power_supply/BAT0/current_now')/1e6)
     y_data.append(read('/sys/class/power_supply/BAT1/current_now')/1e6)
     y_data.append(y_data[0]*y_data[1])
     y_data.append(y_data[2]*y_data[3])

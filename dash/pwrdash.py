@@ -246,6 +246,7 @@ def update_plot(fig,time0):
     y_data.append(read('/sys/class/thermal/thermal_zone6/temp')/1e3)
     y_data.append(read('/sys/class/thermal/thermal_zone7/temp')/1e3)
 
+    time.sleep(0.1)
     dt = time.time() - t0
     sys1 = read('/sys/class/powercap/intel-rapl:1/energy_uj')/1e6
     cpu1 = read('/sys/class/powercap/intel-rapl:0/energy_uj')/1e6
@@ -281,4 +282,4 @@ def button(n_clicks):
         return UPDATE_INTERVAL_MSEC
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=9001)

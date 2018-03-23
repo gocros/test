@@ -98,13 +98,13 @@ def init_histo():
         )     
     ]
     layout = go.Layout(
-        width=1200, 
-        height=300, 
+        width=1070, 
+        height=240, 
         plot_bgcolor="#C0C0C0",
         paper_bgcolor="#F0F0F0",
         margin=dict(l=50, b=40, r=0, t=10),
-        xaxis1=dict(title='BAT0 POWER (W)', domain=[0,0.440]),
-        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.45, 0.45+0.44]),        
+        xaxis1=dict(title='BAT0 POWER (W)', domain=[0,0.495]),
+        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.505, 1]),        
     )
 
     fig = dict(data=data, layout=layout)
@@ -123,36 +123,71 @@ app.css.append_css({"external_url": "/css/my.css"})
 app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
 #app.css.append_css({'external_url': 'https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css'})  # noqa: E501
 
-app.layout = html.Div(
-    children=[
-        html.Div(
-            children=[html.Button(
-                id='button', 
-                n_clicks=0, 
-                children='STARTING...')
-            ], 
-            style={'color':'white'}
-        ),
-        
-        html.Div(
-            children=[
-                dcc.Graph(
-                    id='graph_one', 
-                    figure=init_fig()
-                ),
-                dcc.Graph(
-                    id='histogram', 
-                    figure=init_histo()
-                )
-                
-            ],  
-            style={'display': 'inline-block'}
-        ),
-        
-        dcc.Interval(id='live-update', interval=1000)
-          
-    ], style={'background-color':"#F0F0F0"}
-) 
+def serve_layout():
+    return html.Div(
+        children=[
+            html.Div(
+                children=[
+                    html.Button(
+                        id='button', 
+                        n_clicks=0, 
+                        children='STARTING...',
+                        style={
+                            'margin':'10px', 
+                            'font-family': 'verdana', 
+                            'font-size':'120%'
+                        }
+                    ),
+                    html.Span(
+                        id='text_status',
+                        children='',
+                        style={'font-size':'120%', 'padding':'20px'}
+                    )
+                ]
+
+            ),
+
+            html.Div(
+                children=[
+                    dcc.Graph(
+                        id='graph_one', 
+                        figure=init_fig()
+                    ),
+                    dcc.Graph(
+                        id='histogram', 
+                        figure=init_histo()
+                    )
+
+                ],  
+                style={'display': 'inline-block'}
+            ),
+
+            dcc.Interval(id='live-update', interval=1000),
+
+            html.Div(id='time0', children=time.time())
+
+        ], style={'background-color':"#F0F0F0"}
+    )
+
+app.layout = serve_layout
+
+@app.callback(
+    dep.Output('text_status', 'children'),
+    [],
+    [],
+    [dep.Event('live-update', 'interval')]
+)
+def update_text():
+    return 'BAT0({}): {:.2f}V, {:.2f}A, {}% - BAT1({}): {:.2f}V, {:.2f}A, {}%'.format(
+        read('/sys/class/power_supply/BAT0/status'),
+        read('/sys/class/power_supply/BAT0/voltage_now')/1e6,
+        read('/sys/class/power_supply/BAT0/current_now')/1e6,
+        read('/sys/class/power_supply/BAT0/capacity'),
+        read('/sys/class/power_supply/BAT1/status'),
+        read('/sys/class/power_supply/BAT1/voltage_now')/1e6,
+        read('/sys/class/power_supply/BAT1/current_now')/1e6,
+        read('/sys/class/power_supply/BAT1/capacity')
+    )
 
 @app.callback(
     dep.Output('histogram', 'figure'),
@@ -162,32 +197,44 @@ app.layout = html.Div(
     [dep.Event('live-update', 'interval')])
 
 def update_histo(fig, histo):
-    pwr_bat0 = fig['data'][4]['y']
-    pwr_bat1 = fig['data'][5]['y']
-    histo['data'][0]['x'] = pwr_bat0
-    histo['data'][1]['x'] = pwr_bat1
+    pwr_bat0 = np.array(fig['data'][4]['y'])
+    pwr_bat1 = np.array(fig['data'][5]['y'])
+    histo['data'][0]['x'] = pwr_bat0[pwr_bat0>0]
+    histo['data'][1]['x'] = pwr_bat1[pwr_bat1>0]
     return histo
     
 @app.callback(
     dep.Output('graph_one', 'figure'),
     [],
-    [dep.State('graph_one', 'figure')],
+    [dep.State('graph_one', 'figure'),
+     dep.State('time0', 'children')],
     [dep.Event('live-update', 'interval')])
 
-def update_plot(fig):
+def update_plot(fig,time0):
     y_data = []
     t0 = time.time()
     sys0 = read('/sys/class/powercap/intel-rapl:1/energy_uj')/1e6
     cpu0 = read('/sys/class/powercap/intel-rapl:0/energy_uj')/1e6
     
-    y_data.append(read('/sys/class/power_supply/BAT0/voltage_now')/1e6)
-    y_data.append(read('/sys/class/power_supply/BAT1/voltage_now')/1e6)
-    y_data.append(read('/sys/class/power_supply/BAT0/current_now')/1e6)
-    y_data.append(read('/sys/class/power_supply/BAT1/current_now')/1e6)
-    y_data.append(y_data[0]*y_data[2])
-    y_data.append(y_data[1]*y_data[3])
+    v0 = read('/sys/class/power_supply/BAT0/voltage_now')/1e6
+    v1 = read('/sys/class/power_supply/BAT1/voltage_now')/1e6
+    
+    i0 = read('/sys/class/power_supply/BAT0/current_now')/1e6
+    i1 = read('/sys/class/power_supply/BAT1/current_now')/1e6
+    
+    if read('/sys/class/power_supply/BAT0/status')=='Charging':
+        i0=-i0
+    if read('/sys/class/power_supply/BAT1/status')=='Charging':
+        i1=-i1
+        
+    t = time.time() - time0
 
-    t = time.time()
+    y_data.append(v0)
+    y_data.append(v1)
+    y_data.append(i0)
+    y_data.append(i1)
+    y_data.append(v0*i0)
+    y_data.append(v1*i1)    
     y_data.append(0)
     y_data.append(0)
     y_data.append(read('/sys/class/thermal/thermal_zone0/temp')/1e3)
@@ -219,9 +266,9 @@ def update_plot(fig):
 )
 def update_button_text(interval):
     if interval==UPDATE_INTERVAL_MSEC:
-        return 'STOP UPDATE'
+        return 'STOP'
     else:
-        return 'AUTO UPDATE'
+        return 'RUN'
         
 @app.callback(
      dep.Output('live-update', 'interval'),

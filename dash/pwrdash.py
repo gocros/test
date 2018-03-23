@@ -23,9 +23,12 @@ def uj2w(t,e):
     return np.array(w)
 
 def read(filename):
-    with open(filename, 'r') as fd:
-        s = fd.readline().rstrip()
-        return int(s) if s.isdigit() else s
+    try:
+        with open(filename, 'r') as fd:
+            s = fd.readline().rstrip()
+            return int(s) if s.isdigit() else s
+    except:
+        return 0
 
 def init_fig():    
     data =[

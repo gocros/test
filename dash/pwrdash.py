@@ -84,7 +84,8 @@ def init_histo():
             marker = dict(color='orange'), 
             showlegend=False,
             cumulative=dict(enabled=True),
-            xaxis='x1'
+            xaxis='x1',
+            yaxis='y1'
         ),
         go.Histogram(
             x=[],
@@ -94,7 +95,8 @@ def init_histo():
             marker = dict(color='steelblue'),  
             showlegend=False,
             cumulative=dict(enabled=True),
-            xaxis='x2'
+            xaxis='x2',
+            yaxis='y1'
         )     
     ]
     layout = go.Layout(
@@ -104,7 +106,7 @@ def init_histo():
         paper_bgcolor="#F0F0F0",
         margin=dict(l=50, b=40, r=0, t=10),
         xaxis1=dict(title='BAT0 POWER (W)', domain=[0,0.495]),
-        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.505, 1]),        
+        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.505, 1])
     )
 
     fig = dict(data=data, layout=layout)
@@ -113,6 +115,16 @@ def init_histo():
     print "============================="
     
     return fig
+
+def make_annotation_item(x, y):
+    return dict(xref='x1', yref='y1',
+                x=7, y=0.5,
+                font=dict(color='black'),
+                xanchor='left',
+                yanchor='middle',
+                text='Annotation',
+                showarrow=True)
+
 app = dash.Dash()
 
 @app.server.route('/css/my.css')
@@ -164,7 +176,7 @@ def serve_layout():
 
             dcc.Interval(id='live-update', interval=1000),
 
-            html.Div(id='time0', children=time.time())
+            html.Div(id='time0', children=time.time(), style={'display':'none'})
 
         ], style={'background-color':"#F0F0F0"}
     )
@@ -201,6 +213,17 @@ def update_histo(fig, histo):
     pwr_bat1 = np.array(fig['data'][5]['y'])
     histo['data'][0]['x'] = pwr_bat0[pwr_bat0>0]
     histo['data'][1]['x'] = pwr_bat1[pwr_bat1>0]
+    print pwr_bat0
+    i=np.where(pwr_bat0>=0.9)[0][0]
+    x=pwr_bat0[i]
+    y=0.9
+    
+    print "======={}======".format(x)
+    
+    fig['layout'].update(
+        {'annotations':[make_annotation_item(7,0.5)]}
+    )
+    
     return histo
     
 @app.callback(

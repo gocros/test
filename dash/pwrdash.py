@@ -1,6 +1,7 @@
 # roychan@: 3/2018
 import time
 import os
+import copy
 import pandas as pd
 import numpy as np
 import dash
@@ -29,7 +30,7 @@ def read(filename):
     except:
         return 0
 
-def init_fig():    
+def gen_graph():    
     data =[
         go.Scatter(x=[], y=[], name='BAT0', yaxis='y1',
                    marker=dict(color='orange'), legendgroup='bat0'),
@@ -43,7 +44,8 @@ def init_fig():
                    marker=dict(color='orange'), legendgroup='bat0', showlegend=False),
         go.Scatter(x=[], y=[], name='BAT1', yaxis='y3',
                    marker=dict(color='steelblue'), legendgroup='bat1', showlegend=False),
-        go.Scatter(x=[], y=[], name='PSYS', legendgroup='psys', yaxis='y3'),
+        go.Scatter(x=[], y=[], name='PSYS', legendgroup='psys', yaxis='y3',
+                   marker=dict(color='red')),
         go.Scatter(x=[], y=[], name='CPU', legendgroup='plt', yaxis='y3'),
         go.Scatter(x=[], y=[], name='x86_pkg', yaxis='y4'),
         go.Scatter(x=[], y=[], name='INT3400', yaxis='y4'),
@@ -74,30 +76,20 @@ def init_fig():
     
     return fig
 
-def init_histo():    
+def gen_histo():    
     data =[
-        go.Histogram(
-            x=[], y=[], 
-            histnorm='probability', 
-            nbinsx=128, 
-            name='BAT0',
-            marker = dict(color='orange'), 
-            showlegend=False,
-            cumulative=dict(enabled=True),
-            xaxis='x1',
-            yaxis='y1'
+        go.Scatter(
+            x=[], y=[], name='BAT0', xaxis='x1', yaxis='y1',
+            marker={'color':'orange'}, showlegend=False
         ),
-        go.Histogram(
-            x=[],
-            histnorm='probability', 
-            nbinsx=128, 
-            name='BAT1',
-            marker = dict(color='steelblue'),  
-            showlegend=False,
-            cumulative=dict(enabled=True),
-            xaxis='x2',
-            yaxis='y1'
-        )     
+        go.Scatter(
+            x=[], y=[], name='BAT1', xaxis='x2', yaxis='y1',
+            marker={'color':'steelblue'}, showlegend=False
+        ),
+        go.Scatter(
+            x=[], y=[], name='PSYS', xaxis='x3', yaxis='y1',
+            marker={'color':'red'}, showlegend=False
+        )    
     ]
     layout = go.Layout(
         width=1070, 
@@ -105,8 +97,11 @@ def init_histo():
         plot_bgcolor="#C0C0C0",
         paper_bgcolor="#F0F0F0",
         margin=dict(l=50, b=40, r=0, t=10),
-        xaxis1=dict(title='BAT0 POWER (W)', domain=[0,0.495]),
-        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.505, 1])
+        yaxis1=dict(title='PROBABILITY'),
+        xaxis1=dict(title='BAT0 POWER (W)', domain=[0,0.325]),
+        xaxis2=dict(title='BAT1 POWER (W)', domain=[0.335, 0.655]),
+        xaxis3=dict(title='PSYS (W)', domain=[0.665, 1])
+        
     )
 
     fig = dict(data=data, layout=layout)
@@ -116,13 +111,13 @@ def init_histo():
     
     return fig
 
-def make_annotation_item(x, y):
-    return dict(xref='x1', yref='y1',
-                x=7, y=0.5,
+def make_annotation_item(xref, x, y, text):
+    return dict(xref=xref, yref='y1',
+                x=x, y=y,
                 font=dict(color='black'),
-                xanchor='left',
-                yanchor='middle',
-                text='Annotation',
+                #xanchor='left',
+                #yanchor='middle',
+                text='{} ({:.2f}W)'.format(text,x,y),
                 showarrow=True)
 
 app = dash.Dash()
@@ -162,14 +157,13 @@ def serve_layout():
             html.Div(
                 children=[
                     dcc.Graph(
-                        id='graph_one', 
-                        figure=init_fig()
+                        id='graph', 
+                        figure=gen_graph()
                     ),
                     dcc.Graph(
-                        id='histogram', 
-                        figure=init_histo()
+                        id='histo', 
+                        figure=gen_histo()
                     )
-
                 ],  
                 style={'display': 'inline-block'}
             ),
@@ -200,36 +194,11 @@ def update_text():
         read('/sys/class/power_supply/BAT1/current_now')/1e6,
         read('/sys/class/power_supply/BAT1/capacity')
     )
-
-@app.callback(
-    dep.Output('histogram', 'figure'),
-    [],
-    [dep.State('graph_one', 'figure'),
-     dep.State('histogram', 'figure')],
-    [dep.Event('live-update', 'interval')])
-
-def update_histo(fig, histo):
-    pwr_bat0 = np.array(fig['data'][4]['y'])
-    pwr_bat1 = np.array(fig['data'][5]['y'])
-    histo['data'][0]['x'] = pwr_bat0[pwr_bat0>0]
-    histo['data'][1]['x'] = pwr_bat1[pwr_bat1>0]
-    print pwr_bat0
-    i=np.where(pwr_bat0>=0.9)[0][0]
-    x=pwr_bat0[i]
-    y=0.9
-    
-    print "======={}======".format(x)
-    
-    fig['layout'].update(
-        {'annotations':[make_annotation_item(7,0.5)]}
-    )
-    
-    return histo
     
 @app.callback(
-    dep.Output('graph_one', 'figure'),
+    dep.Output('graph', 'figure'),
     [],
-    [dep.State('graph_one', 'figure'),
+    [dep.State('graph', 'figure'),
      dep.State('time0', 'children')],
     [dep.Event('live-update', 'interval')])
 
@@ -283,6 +252,76 @@ def update_plot(fig,time0):
         dat['y'].append(y)
  
     return fig
+@app.callback(
+    dep.Output('histo', 'figure'),
+    [],
+    [dep.State('graph', 'figure'),
+     dep.State('histo', 'figure')],
+    [dep.Event('live-update', 'interval')])
+
+def update_histo(fig, histo):
+    
+    annotation = []    
+    y = np.array(fig['data'][4]['y'])  
+    if min(y)>5:
+        y=y[y>0]
+
+    y, x = np.histogram(y, bins=32)
+    y=y.astype(float)
+    y=y/sum(y)
+    y = np.cumsum(y)
+    
+    histo['data'][0]['x'] = x
+    histo['data'][0]['y'] = y
+
+    annotation.append(
+        make_annotation_item('x1', x[np.where(y>=0.5)[0][0]], 0.52, "50%")
+    )
+    annotation.append(
+        make_annotation_item('x1', x[np.where(y>=0.9)[0][0]], 0.92, "90%")
+    )
+    
+    y = fig['data'][5]['y']
+    if min(y)>5:
+        y=y[y>0]
+
+    y, x = np.histogram(y, bins=32)
+    y=y.astype(float)/sum(y)    
+    y = np.cumsum(y)
+    
+    histo['data'][1]['x'] = x
+    histo['data'][1]['y'] = y
+
+    annotation.append(
+        make_annotation_item('x2', x[np.where(y>=0.9)[0][0]], 0.92, "90%")
+    )  
+    annotation.append(
+        make_annotation_item('x2', x[np.where(y>=0.5)[0][0]], 0.52, "50%")
+    )  
+     
+    y = fig['data'][6]['y']
+    if min(y)>5:
+        y=y[y>0]
+
+    y, x = np.histogram(y, bins=32)
+    y=y.astype(float)/sum(y)    
+    y = np.cumsum(y)
+    
+    histo['data'][2]['x'] = x
+    histo['data'][2]['y'] = y
+
+    annotation.append(
+        make_annotation_item('x3', x[np.where(y>=0.9)[0][0]], 0.92, "90%")
+    )  
+    annotation.append(
+        make_annotation_item('x3', x[np.where(y>=0.5)[0][0]], 0.52, "50%")
+    )
+    
+    histo['layout'].update(
+        {'annotations':annotation}
+    )
+    
+    return histo
 
 @app.callback(
      dep.Output('button', 'children'),
@@ -306,3 +345,4 @@ def button(n_clicks):
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=9001)
+    #app.run_server(port=9001)

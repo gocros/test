@@ -122,7 +122,7 @@ def make_annotation_item(xref, x, y, text):
 
 app = dash.Dash()
 
-@app.server.route('/css/my.css')
+@app.server.route('/static/my.css')
 def serve_stylesheet(stylesheet):
     return flask.send_from_directory(os.getcwd(), stylesheet)
 
